@@ -1,38 +1,27 @@
 import os
-import time
 import cohere
 from dotenv import load_dotenv
 
 load_dotenv()
+co = cohere.Client(api_key=os.getenv("COHERE_API_KEY"))
 
-CO_API_KEY = os.getenv("CO_API_KEY")
-co = cohere.Client(CO_API_KEY)
+def is_valid_query(query: str) -> bool:
+    prompt = f"""Classify the following user query as either "valid" or "invalid" based on whether it is clear, useful, and makes sense for a web search:
 
-def is_valid_query(query: str, retries: int = 3, threshold: float = 0.5) -> bool:
-    examples = [
-        cohere.ClassifyExample(text="What is AI?", label="valid"),
-        cohere.ClassifyExample(text="How to learn machine learning?", label="valid"),
-        cohere.ClassifyExample(text="Python programming tutorials", label="valid"),
-        cohere.ClassifyExample(text="asdfghjkl", label="invalid"),
-        cohere.ClassifyExample(text="!!!@#$$", label="invalid"),
-        cohere.ClassifyExample(text="kjhqwieuqwe", label="invalid"),
-    ]
+Query: "{query}"
+Answer:"""
 
-    for attempt in range(retries):
-        try:
-            response = co.classify(
-                inputs=[query],
-                examples=examples,
-            )
-            prediction = response.classifications[0]
-            label = prediction.prediction
-            confidence = prediction.confidence
-
-            print(f"🧠 Cohere: '{label.upper()}' with confidence {confidence:.2f}")
-
-            return label == "valid" and confidence >= threshold
-        except Exception as e:
-            print(f"❌ Cohere classification error (attempt {attempt + 1}): {e}")
-            time.sleep(2 ** attempt)
-
-    return False
+    try:
+        response = co.generate(
+            model="command-r-plus",
+            prompt=prompt,
+            max_tokens=5,
+            temperature=0.2,
+            stop_sequences=["\n"]
+        )
+        output = response.generations[0].text.strip().lower()
+        print(f"🧠 LLM output: '{output}'")
+        return "valid" in output
+    except Exception as e:
+        print("❌ Cohere Command R error:", e)
+        return False
