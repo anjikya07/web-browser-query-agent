@@ -10,7 +10,7 @@ function QueryForm() {
     setResponse('');
     setLoading(true);
     try {
-      const res = await fetch('https://<web-browser-query-agent.onrender.com>/query', {
+      const res = await fetch('https://web-browser-query-agent.onrender.com/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query }),
