@@ -24,8 +24,7 @@ def extract_text(url):
         paragraphs = soup.find_all('p')
         text = ' '.join(p.get_text(strip=True) for p in paragraphs)
 
-
-        return text[:10000]  # Max content limit for Cohere summarization
+        return text[:5000]  # Max content limit for Cohere summarization
     except Exception as e:
         print(f"⚠️ Extraction error for {url}: {e}")
         return None
@@ -33,6 +32,10 @@ def extract_text(url):
 def summarize(text, retries=3):
     if not text:
         return None
+
+    if len(text.strip()) < 250:
+        print(f"⚠️ Skipping summarization: text too short ({len(text.strip())} characters).")
+        return "❗️Not enough content to summarize."
 
     for attempt in range(retries):
         try:
@@ -55,4 +58,4 @@ def summarize(text, retries=3):
             print(f"[Retry {attempt+1}] Exception: {e}")
         time.sleep(2 ** attempt)
 
-    return None
+    return "❗️Summarization failed after multiple attempts."
