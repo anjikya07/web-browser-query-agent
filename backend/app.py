@@ -2,11 +2,25 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import json
 import os
+import subprocess
 
 app = Flask(__name__)
 CORS(app)
 
 CACHE_FILE = "cache.json"
+
+# 🧠 Ensure Playwright browser is installed (Render fix)
+def ensure_playwright_browser():
+    browser_path = "/opt/render/.cache/ms-playwright"
+    if not os.path.exists(browser_path):
+        print("⚠️ Playwright browser not found, installing...")
+        try:
+            subprocess.run(["playwright", "install", "chromium"], check=True)
+            print("✅ Playwright browser installed.")
+        except Exception as e:
+            print("❌ Playwright install failed:", e)
+
+ensure_playwright_browser()
 
 def load_cache():
     try:
@@ -48,7 +62,8 @@ def handle_query():
     # Step 4: Perform smart search
     try:
         urls, engine = smart_search(query)
-    except Exception:
+    except Exception as e:
+        print("❌ Search failed:", e)
         return jsonify({"error": "Search failed"}), 500
 
     # Step 5: Scrape and summarize
@@ -74,6 +89,6 @@ def handle_query():
     else:
         return jsonify({"valid": True, "cached": False, "result": "No useful content found."}), 200
 
-# ✅ Don't run app with debug=True in production
+# ✅ Don't run with debug=True in production
 if __name__ == "__main__":
     app.run()
