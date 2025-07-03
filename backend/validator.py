@@ -1,49 +1,46 @@
 import os
 import time
-import requests
+import cohere
 from dotenv import load_dotenv
 
 load_dotenv()
 
-HF_TOKEN = os.getenv("HF_TOKEN")
+COHERE_API_KEY = os.getenv("COHERE_API_KEY")
+co = cohere.Client(COHERE_API_KEY)
 
-def is_valid_query(query: str, retries: int = 3, timeout: int = 30) -> bool:
+def is_valid_query(query: str, retries: int = 3, delay: int = 2) -> bool:
     """
-    Classifies a query as 'valid' or 'invalid' using Hugging Face's zero-shot API.
-    Retries on timeout or connection errors.
+    Uses Cohere's classify endpoint to determine if a query is 'valid' or 'invalid'.
     """
-    API_URL = "https://api-inference.huggingface.co/models/facebook/bart-large-mnli"
-    headers = {
-        "Authorization": f"Bearer {HF_TOKEN}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "inputs": query,
-        "parameters": {
-            "candidate_labels": ["valid", "invalid"]
-        }
-    }
+    inputs = [query]
+    examples = [
+        {"text": "How to start a startup?", "label": "valid"},
+        {"text": "Latest news about AI tools", "label": "valid"},
+        {"text": "asdfhjkl", "label": "invalid"},
+        {"text": "search 123", "label": "invalid"},
+        {"text": "Give me", "label": "invalid"},
+        {"text": "what is", "label": "valid"},
+        {"text": "explain blockchain", "label": "valid"},
+        {"text": "How to do X in Python", "label": "valid"},
+        {"text": "best programming languages 2025", "label": "valid"},
+        {"text": "openai.com", "label": "invalid"}
+    ]
 
-    for attempt in range(1, retries + 1):
+    for attempt in range(retries):
         try:
-            response = requests.post(API_URL, headers=headers, json=payload, timeout=timeout)
-            response.raise_for_status()
+            response = co.classify(
+                inputs=inputs,
+                examples=[cohere.ClassifyExample(e["text"], e["label"]) for e in examples]
+            )
+            prediction = response.classifications[0]
+            top_label = prediction.prediction
+            confidence = prediction.confidences[0].confidence
 
-            result = response.json()
-            label = result["labels"][0]
-            score = result["scores"][0]
+            print(f"🧠 Cohere Classifier: {top_label.upper()}, score={confidence:.2f}")
+            return top_label == "valid"
 
-            print(f"✅ Hugging Face classified as: {label.upper()} (score={score:.2f})")
-            return label == "valid"
-
-        except requests.exceptions.Timeout:
-            print(f"⚠️ Timeout on attempt {attempt}/{retries}. Retrying in {2**attempt} sec...")
-        except requests.exceptions.RequestException as e:
-            print(f"❌ Request error on attempt {attempt}/{retries}: {e}")
         except Exception as e:
-            print(f"❌ Unexpected error: {e}")
+            print(f"❌ Cohere classification error (attempt {attempt+1}): {e}")
+            time.sleep(delay * (2 ** attempt))  # Exponential backoff
 
-        time.sleep(2 ** attempt)  # Exponential backoff
-
-    print("❌ Hugging Face classification failed after retries.")
-    return False
+    return False  # fallback if all attempts fail
