@@ -1,6 +1,6 @@
 // App.js
 import React from 'react';
-import './App.css';
+import './App.CSS';
 import QueryForm from './components/QueryForm';
 
 function App() {
