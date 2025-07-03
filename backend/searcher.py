@@ -21,25 +21,23 @@ def startpage_search(query):
     urls = []
     with sync_playwright() as p:
         browser = p.chromium.launch(
-    headless=True,
-    args=[
-        "--disable-gpu",
-        "--no-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-extensions",
-        "--disable-setuid-sandbox",
-        "--single-process",
-        "--disable-background-networking",
-        "--disable-default-apps",
-        "--disable-sync",
-        "--metrics-recording-only",
-        "--mute-audio",
-        "--no-first-run",
-        "--safebrowsing-disable-auto-update",
-        "--enable-automation"
-    ]
-)
-
+            headless=True,
+            args=[
+                "--no-sandbox",
+                "--disable-gpu",
+                "--disable-dev-shm-usage",
+                "--single-process",
+                "--disable-setuid-sandbox",
+                "--disable-extensions",
+                "--disable-background-networking",
+                "--mute-audio",
+                "--metrics-recording-only",
+                "--no-first-run",
+                "--disable-sync",
+                "--disable-default-apps",
+                "--enable-automation"
+            ]
+        )
         context = browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
         )
@@ -50,20 +48,13 @@ def startpage_search(query):
             page.goto(search_url, timeout=30000)
             page.wait_for_timeout(4000)
 
-            # Startpage search results link selector
             anchors = page.locator("a.result-link").all()
-
             for anchor in anchors:
                 href = anchor.get_attribute("href")
                 if href and href.startswith("http"):
                     urls.append(href)
                 if len(urls) >= 5:
                     break
-
-            if not urls:
-                print("⚠️ Startpage returned no valid links.")
-                print("🔎 Raw page content:")
-                print(page.content()[:500])
 
         except Exception as e:
             print(f"❌ Startpage search error: {e}")
@@ -91,5 +82,4 @@ def smart_search(query):
             raise Exception("No URLs from Startpage")
     except Exception as e:
         print(f"\n❌ Startpage failed: {e}")
-        print("🔍 Search failed. Try a simpler query or check your network.")
         raise
