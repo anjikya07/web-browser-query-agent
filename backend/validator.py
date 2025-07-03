@@ -5,42 +5,34 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-COHERE_API_KEY = os.getenv("COHERE_API_KEY")
-co = cohere.Client(COHERE_API_KEY)
+CO_API_KEY = os.getenv("CO_API_KEY")
+co = cohere.Client(CO_API_KEY)
 
-def is_valid_query(query: str, retries: int = 3, delay: int = 2) -> bool:
-    """
-    Uses Cohere's classify endpoint to determine if a query is 'valid' or 'invalid'.
-    """
-    inputs = [query]
+def is_valid_query(query: str, retries: int = 3, threshold: float = 0.5) -> bool:
     examples = [
-        {"text": "How to start a startup?", "label": "valid"},
-        {"text": "Latest news about AI tools", "label": "valid"},
-        {"text": "asdfhjkl", "label": "invalid"},
-        {"text": "search 123", "label": "invalid"},
-        {"text": "Give me", "label": "invalid"},
-        {"text": "what is", "label": "valid"},
-        {"text": "explain blockchain", "label": "valid"},
-        {"text": "How to do X in Python", "label": "valid"},
-        {"text": "best programming languages 2025", "label": "valid"},
-        {"text": "openai.com", "label": "invalid"}
+        cohere.ClassifyExample(text="What is AI?", label="valid"),
+        cohere.ClassifyExample(text="How to learn machine learning?", label="valid"),
+        cohere.ClassifyExample(text="Python programming tutorials", label="valid"),
+        cohere.ClassifyExample(text="asdfghjkl", label="invalid"),
+        cohere.ClassifyExample(text="!!!@#$$", label="invalid"),
+        cohere.ClassifyExample(text="kjhqwieuqwe", label="invalid"),
     ]
 
     for attempt in range(retries):
         try:
             response = co.classify(
-                inputs=inputs,
-                examples=[cohere.ClassifyExample(e["text"], e["label"]) for e in examples]
+                inputs=[query],
+                examples=examples,
             )
             prediction = response.classifications[0]
-            top_label = prediction.prediction
-            confidence = prediction.confidences[0].confidence
+            label = prediction.prediction
+            confidence = prediction.confidence
 
-            print(f"🧠 Cohere Classifier: {top_label.upper()}, score={confidence:.2f}")
-            return top_label == "valid"
+            print(f"🧠 Cohere: '{label.upper()}' with confidence {confidence:.2f}")
 
+            return label == "valid" and confidence >= threshold
         except Exception as e:
-            print(f"❌ Cohere classification error (attempt {attempt+1}): {e}")
-            time.sleep(delay * (2 ** attempt))  # Exponential backoff
+            print(f"❌ Cohere classification error (attempt {attempt + 1}): {e}")
+            time.sleep(2 ** attempt)
 
-    return False  # fallback if all attempts fail
+    return False
