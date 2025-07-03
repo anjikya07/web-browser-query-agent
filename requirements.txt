@@ -10,3 +10,4 @@ playwright
 transformers
 sentence-transformers
 scikit-learn
+gunicorn
