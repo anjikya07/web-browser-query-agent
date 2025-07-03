@@ -6,5 +6,5 @@ python-dotenv
 gunicorn
 cohere
 playwright
-openai  
-tqdm    
+tqdm
+numpy
